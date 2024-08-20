@@ -18,7 +18,7 @@ func NewOrderRepository(db *sql.DB) *OrderRepository {
 
 func (repo *OrderRepository) FindOrderByToken(token string) (*models.Order, error) {
 	var order models.Order
-	log.Printf("Looking for order with token: %s", token)
+	// log.Printf("Looking for order with token: %s", token)
 
 	query := `SELECT id, "orderedBy", "isOrderVerified", "status", "verificationToken", "userId", "orderDateTime", "createdAt"
 			  FROM "Order" 
@@ -43,6 +43,6 @@ func (repo *OrderRepository) FindOrderByToken(token string) (*models.Order, erro
 		return nil, err
 	}
 
-	log.Printf("Order found: %+v", order)
+	// log.Printf("Order found: %+v", order)
 	return &order, nil
 }

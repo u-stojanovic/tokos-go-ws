@@ -1,6 +1,7 @@
 package broadcast
 
 import (
+	"log"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -18,6 +19,7 @@ type Message struct {
 }
 
 func Broadcast(message Message) {
+	log.Println("message: ", message)
 	broadcast <- message
 }
 
@@ -25,6 +27,7 @@ func RegisterClient(ws *websocket.Conn) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	clients[ws] = true
+	log.Println("Client registered, total clients:", len(clients))
 }
 
 func RemoveClient(ws *websocket.Conn) {
@@ -37,6 +40,7 @@ func StartBroadcasting() {
 	for {
 		message := <-broadcast
 		mutex.Lock()
+		log.Println("Broadcasting message to client")
 		for client := range clients {
 			err := client.WriteJSON(message)
 			if err != nil {

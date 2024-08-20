@@ -11,32 +11,35 @@ import (
 )
 
 func main() {
-	// Load environment variables from .env file
+	// .env load
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	// Load Config
+	// config load
 	cfg := config.LoadConfig()
 
-	// Initialize the database connection
+	// db init
 	db, err := database.InitDB(cfg.DatabaseDSN)
 	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
-	defer db.Close() // Ensure the database connection is closed when the application shuts down
+	defer db.Close() // db conn closing after app shut down
 
-	// Initialize OrderRepository
+	// orderRepo init
 	orderRepo := database.NewOrderRepository(db)
 
-	// Pass the repository to the WebSocket handler
+	// orderRepo passed to ws handler
 	websocket.SetOrderRepository(orderRepo)
 
-	// Handle WebSocket requests
+	// starting broadcasting
+	go websocket.Start()
+
+	// handling ws requests
 	http.HandleFunc("/ws", websocket.HandleConnections)
 
-	// Start the server on the specified port
+	// starting the server
 	log.Println("WebSocket server started on port:", cfg.ServerPort)
 	err = http.ListenAndServe(":"+cfg.ServerPort, nil)
 	if err != nil {

@@ -3,11 +3,11 @@ package handlers
 import (
 	"log"
 	"net/url"
+	"tokos-ws/internal/broadcast"
 	"tokos-ws/internal/database"
 )
 
 func HandleNewOrder(data interface{}, orderRepo *database.OrderRepository) {
-	// Assuming data is a string (the token)
 	token, ok := data.(string)
 	if !ok {
 		log.Println("Invalid token format")
@@ -21,7 +21,6 @@ func HandleNewOrder(data interface{}, orderRepo *database.OrderRepository) {
 		return
 	}
 
-	// Now use the decoded token to find the order
 	order, err := orderRepo.FindOrderByToken(decodedToken)
 	if err != nil {
 		log.Printf("Failed to find order by token: %v", err)
@@ -29,5 +28,10 @@ func HandleNewOrder(data interface{}, orderRepo *database.OrderRepository) {
 	}
 
 	log.Printf("Order found: %+v", order)
-	// You can then continue processing the order or broadcast it as needed
+
+	message := broadcast.Message{
+		Event: "new_order",
+		Data:  order,
+	}
+	broadcast.Broadcast(message)
 }

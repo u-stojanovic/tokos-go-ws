@@ -21,30 +21,38 @@ func SetOrderRepository(repo *database.OrderRepository) {
 }
 
 func HandleConnections(w http.ResponseWriter, r *http.Request) {
+	// Upgrading to ws
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("WebSocket Upgrade Error:", err)
 		return
 	}
-	defer ws.Close()
+	defer func() {
+		// client is removed when the connection is closed
+		broadcast.RemoveClient(ws)
+		ws.Close()
+		log.Println("WebSocket connection closed:", ws.RemoteAddr())
+	}()
 
+	// client is registered once the connection is established
 	broadcast.RegisterClient(ws)
+	log.Println("WebSocket connection established with client:", ws.RemoteAddr())
 
+	// Infinite loop to keep the connection open
 	for {
 		var msg broadcast.Message
 		err := ws.ReadJSON(&msg)
 		if err != nil {
-			log.Printf("WebSocket Read Error: %v", err)
-			broadcast.RemoveClient(ws)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("WebSocket Read Error: %v", err)
+			}
 			break
 		}
 
-		// Process the message based on the event type
 		switch msg.Event {
 		case "new_product":
 			handlers.HandleNewProduct(msg.Data)
 		case "new_order":
-			// Use the repository within the handler
 			handlers.HandleNewOrder(msg.Data, orderRepo)
 		default:
 			log.Println("Unknown event type:", msg.Event)
@@ -53,5 +61,6 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 }
 
 func Start() {
+	log.Println("StartBroadcasting called in start")
 	go broadcast.StartBroadcasting()
 }
