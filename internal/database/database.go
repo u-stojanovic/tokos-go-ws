@@ -1,22 +1,23 @@
 package database
 
 import (
+	"database/sql"
 	"log"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	_ "github.com/lib/pq"
 )
 
-var DB *gorm.DB
-
-func InitDB(dsn string) {
-	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+func InitDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		return nil, err
 	}
 
-	// NOTE:
-	// Ensure AutoMigrate is NOT called anywhere
-	// This prevents any schema changes
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("Database connection established")
+	return db, nil
 }

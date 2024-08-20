@@ -3,21 +3,21 @@ package websocket
 import (
 	"log"
 	"net/http"
-	"sync"
+	"tokos-ws/internal/broadcast"
+	"tokos-ws/internal/database"
+	"tokos-ws/internal/handlers"
 
 	"github.com/gorilla/websocket"
 )
 
 var (
-	clients   = make(map[*websocket.Conn]bool)
-	broadcast = make(chan interface{})
-	mutex     = &sync.Mutex{}
+	upgrader  = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	orderRepo *database.OrderRepository
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
+// SetOrderRepository sets the OrderRepository that will be used in handlers.
+func SetOrderRepository(repo *database.OrderRepository) {
+	orderRepo = repo
 }
 
 func HandleConnections(w http.ResponseWriter, r *http.Request) {
@@ -28,37 +28,30 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close()
 
-	mutex.Lock()
-	clients[ws] = true
-	mutex.Unlock()
+	broadcast.RegisterClient(ws)
 
 	for {
-		_, message, err := ws.ReadMessage()
+		var msg broadcast.Message
+		err := ws.ReadJSON(&msg)
 		if err != nil {
-			mutex.Lock()
-			delete(clients, ws)
-			mutex.Unlock()
+			log.Printf("WebSocket Read Error: %v", err)
+			broadcast.RemoveClient(ws)
 			break
 		}
-		broadcast <- message
-	}
-}
 
-func Broadcast(message interface{}) {
-	broadcast <- message
-}
-
-func HandleMessages() {
-	for {
-		message := <-broadcast
-		mutex.Lock()
-		for client := range clients {
-			err := client.WriteJSON(message)
-			if err != nil {
-				client.Close()
-				delete(clients, client)
-			}
+		// Process the message based on the event type
+		switch msg.Event {
+		case "new_product":
+			handlers.HandleNewProduct(msg.Data)
+		case "new_order":
+			// Use the repository within the handler
+			handlers.HandleNewOrder(msg.Data, orderRepo)
+		default:
+			log.Println("Unknown event type:", msg.Event)
 		}
-		mutex.Unlock()
 	}
+}
+
+func Start() {
+	go broadcast.StartBroadcasting()
 }
