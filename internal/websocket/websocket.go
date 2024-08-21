@@ -11,13 +11,18 @@ import (
 )
 
 var (
-	upgrader  = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
-	orderRepo *database.OrderRepository
+	upgrader    = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	orderRepo   *database.OrderRepository
+	productRepo *database.ProductRepository
 )
 
 // SetOrderRepository sets the OrderRepository that will be used in handlers.
 func SetOrderRepository(repo *database.OrderRepository) {
 	orderRepo = repo
+}
+
+func SetProductRepository(repo *database.ProductRepository) {
+	productRepo = repo
 }
 
 func HandleConnections(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +56,7 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 
 		switch msg.Event {
 		case "new_product":
-			handlers.HandleNewProduct(msg.Data)
+			handlers.HandleNewProduct(msg.Data, productRepo)
 		case "new_order":
 			handlers.HandleNewOrder(msg.Data, orderRepo)
 		default:

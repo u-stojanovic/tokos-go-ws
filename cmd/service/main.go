@@ -27,11 +27,13 @@ func main() {
 	}
 	defer db.Close() // db conn closing after app shut down
 
-	// orderRepo init
+	// orderRepo productRepo init
 	orderRepo := database.NewOrderRepository(db)
+	productRepo := database.NewProductRepository(db)
 
 	// orderRepo passed to ws handler
 	websocket.SetOrderRepository(orderRepo)
+	websocket.SetProductRepository(productRepo)
 
 	// starting broadcasting
 	go websocket.Start()

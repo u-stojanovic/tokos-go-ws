@@ -1,9 +1,29 @@
 package handlers
 
-import "log"
+import (
+	"log"
+	"tokos-ws/internal/broadcast"
+	"tokos-ws/internal/database"
+)
 
-// HandleNewProduct processes the new product data and broadcasts it to all clients.
-func HandleNewProduct(data interface{}) {
-	// broadcast.Broadcast(broadcast.Message{Event: "update_product_list", Data: data})
-	log.Printf("Processing new product: %v", data)
+func HandleNewProduct(data interface{}, productRepo *database.ProductRepository) {
+	id, ok := data.(int)
+	if !ok {
+		log.Println("Invalid product ID format")
+		return
+	}
+
+	product, err := productRepo.FindProduct(id)
+	if err != nil {
+		log.Printf("Failed to find product by ID: %v", err)
+		return
+	}
+
+	log.Printf("Product found: %+v", product)
+
+	message := broadcast.Message{
+		Event: "new_product",
+		Data:  product,
+	}
+	broadcast.Broadcast(message)
 }
