@@ -26,24 +26,26 @@ func SetProductRepository(repo *database.ProductRepository) {
 }
 
 func HandleConnections(w http.ResponseWriter, r *http.Request) {
-	// Upgrading to ws
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "https://ataoakaoasa.vercel.app, https://ataoakaoasadmin-panel.vercel.app, http://localhost:3001, http://localhost:3000, http://localhost:8000, https://tokos-go-ws-production.up.railway.app")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+	// Upgrading to WebSocket
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("WebSocket Upgrade Error:", err)
 		return
 	}
 	defer func() {
-		// client is removed when the connection is closed
 		broadcast.RemoveClient(ws)
 		ws.Close()
 		log.Println("WebSocket connection closed:", ws.RemoteAddr())
 	}()
 
-	// client is registered once the connection is established
 	broadcast.RegisterClient(ws)
 	log.Println("WebSocket connection established with client:", ws.RemoteAddr())
 
-	// Infinite loop to keep the connection open
 	for {
 		var msg broadcast.Message
 		err := ws.ReadJSON(&msg)
