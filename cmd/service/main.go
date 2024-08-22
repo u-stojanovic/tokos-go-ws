@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"tokos-ws/internal/config"
 	"tokos-ws/internal/database"
 	"tokos-ws/internal/websocket"
@@ -42,9 +43,9 @@ func main() {
 	http.HandleFunc("/ws", websocket.HandleConnections)
 
 	// starting the server
-	log.Println("WebSocket server started on port:", cfg.ServerPort)
-	err = http.ListenAndServe(":"+cfg.ServerPort, nil)
-	if err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = cfg.ServerPort
 	}
+	err = http.ListenAndServe(":"+port, nil)
 }
